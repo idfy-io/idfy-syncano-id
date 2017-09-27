@@ -1,0 +1,360 @@
+name: idfy-id
+description: 'A socket wrapping Idfy''s Identification API - https://id.signere.no'
+version: 0.0.4
+config:
+  AccountId:
+    required: true
+    description: Your Idfy account id
+  ClientId:
+    required: true
+    description: Your OAuth client's id
+  ClientSecret:
+    required: true
+    description: Your OAuth client's secret
+  Test:
+    required: true
+    description: 'Using Idfy''s test environment, ''true'' or ''false'''
+  Scope:
+    required: true
+    description: Scope of your OAuth client. 'identify' or 'root'
+endpoints:
+  identify-create:
+    description: Create a new request to start the identification process
+    file: scripts/identify_create.js
+    parameters:
+      IdentityProvider:
+        type: string
+        description: >
+          Valid values: "UNKNOWN" "NO_BANKID_MOBILE" "NO_BANKID_WEB"
+          "SWE_BANKID" "SWE_BANKID_MOBILE" "NO_BUYPASS" "DA_NEMID" "FI_TUPAS"
+          The identityprovider to use for the identification, if not set the
+          user will get a list of all the e-ID assosiated with your account to
+          choose from.
+        example: NO_BANKID_WEB
+      ReturnUrls:
+        type: object
+        description: Required. Return urls for the identity request
+        example: |
+          {
+            "Error": "https://secure.wayneenterprises.com/auth/error.aspx?status=[0]",
+            "Abort": "https://secure.wayneenterprises.com/auth/abort.aspx?requestid=[1]&externalid=[2]",
+            "Success": "https://secure.wayneenterprises.com/auth/success.aspx?requestid=[1]&externalid=[2]"
+          }
+      iFrame:
+        type: object
+        description: >
+          iFrame settings REMARK! If using iframe the parent site have to be on
+          https
+        example: |
+          {
+            "Domain": "secure.wayneenterprises.com",
+            "WebMessaging": true
+          }
+      Language:
+        type: string
+        description: >
+          Valid values: "NO" "EN" "SV" "DA" "FI" The language to be used for the
+          identification process, if not set the language of the users browser
+          will be used.
+        example: 'NO'
+      GetSocialSecurityNumber:
+        type: boolean
+        description: >
+          Should the socialsecuritynumber be fetched from the identityprovider?
+          Beware that there is an extra cost of doing this every time and one
+          need permission to do it.
+        example: 'false'
+      PreFilledSocialSecurityNumber:
+        type: string
+        description: >
+          If this is specified then the client will be prefilled with this
+          value. (supported by Norwegian BankID, NemID and Tupas)
+        example: '19099023590'
+      PageTitle:
+        type: string
+        description: >
+          Title of the identification page (Used when redirecting on larger
+          devices). Not used in iFrame mode
+        example: Verify your identity
+      ExternalReference:
+        type: string
+        description: >
+          The merchants reference to the identification process, this will also
+          be used to identify an identification in a detailed invoice. It is an
+          advantage if this is unique for each API call.
+        example: 765a7ed2d95c4000b14d7a48eb267546
+      AddonServices:
+        type: object
+        description: >
+          List of addon data that can be orderd. The result will be in MetaData
+          list of the reponse
+        example: |
+          {
+            "no.personal.info": null
+          }
+    response:
+      mimetype: application/json
+      examples:
+        - exit_code: 200
+          description: Success
+          example: |
+            {
+              "Url": "https://idtest.signere.no/NoBankIDMobile/Start?sessionid=3HtyxmFpQ5zXQ5o7aBvTYpbq630jvpNlZe1TNwzSi81v2&providerId=c4ab63ae-81b6-49d2-b75c-a17301071188&iframe=False&webmessaging=False&language=NO&errorUrl=aHR0cHM6Ly9pZHRlc3Quc2lnbmVyZS5uby90ZXN0L2Vycm9yP3N0YXR1cz1bMF0%3D&",
+              "RequestId": "25191832985138881678wuuPNTgWL4Aq7RsIemzU8umZSsYNWcEFH1PbCVkdfHZjb6tfnyeTo4mDcvOoEP0z4zvvpcx0zoriRdYbETGLLwHJPkFXRjlRs0kpgeKvANFKkHA0CJGGFYQpbTfht08riaJcpKoRY4vHRJjANxfITbS7bYlFTFR37PEAqcsArnVrcuNyjnvp"
+            }
+  identify-getresponse:
+    description: >
+      Gets the response of the identifaction process (status, name, unique
+      identifier from e-Id, ssn (if allowed) and other metadata about the user)
+      REMARK: Only authenticate users when the identitication status is equal to
+      SUCCESS.
+    file: scripts/identify_getresponse.js
+    parameters:
+      requestId:
+        type: string
+        description: Required. The requestId returned in the creation of the request
+        example: 123ses43rwr3wsrsw3
+      metaData:
+        type: boolean
+        description: >
+          Should metadata be included in the response, only set to true if need
+          (addons and user ceritifcate)
+        example: false
+    response:
+      mimetype: application/json
+      examples:
+        - exit_code: 200
+          description: Success
+          example: |
+            {
+              "Name": "Wayne, Bruce Thomas",
+              "FirstName": "Bruce",
+              "MiddleName": "Thomas",
+              "LastName": "Wayne",
+              "DateOfBirth": "311271",
+              "Status": "SUCCESS",
+              "SocialSecurityNumber": "23071212345",
+              "IdentityProviderUniqueId": "9578-6000-4-48855",
+              "IdentityProvider": "NO_BANKID_WEB",
+              "EnvironmentInfo": {
+                "UserAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 10_0_2 like Mac OS X) AppleWebKit/602.1.50 (KHTML, like Gecko) Mobile/14A456",
+                "IPAddress": "192.168.1.0"
+              },
+              "MetaData": {
+                "no.personal.info": "JSON data"
+              },
+              "RequestId": "25191832985138881678wuuPNTgWL4Aq7RsIemzU8umZSsYNWcEFH1PbCVkdfHZjb6tfnyeTo4mDcvOoEP0z4zvvpcx0zoriRdYbETGLLwHJPkFXRjlRs0kpgeKvANFKkHA0CJGGFYQpbTfht08riaJcpKoRY4vHRJjANxfITbS7bYlFTFR37PEAqcsArnVrcuNyjnvp"
+            }
+  identify-iscomplete:
+    description: 'Checks the status of the identification process, returns OK if complete'
+    file: scripts/identify_iscomplete.js
+    parameters:
+      requestId:
+        type: string
+        description: Required. The requestId returned in the creation of the request
+        example: 123ses43rwr3wsrsw3
+    response:
+      mimetype: application/json
+      examples:
+        - exit_code: 200
+          description: Success
+          example: true
+  identify-invalidate:
+    description: Invalidate the identity request to avoid using the same request twice.
+    file: scripts/identify_invalidate.js
+    parameters:
+      requestId:
+        type: string
+        description: Required. The requestId returned in the creation of the request
+        example: 123ses43rwr3wsrsw3
+    response:
+      mimetype: application/json
+      examples:
+        - exit_code: 200
+          description: Success
+          example: {}
+  bankidmobile-create:
+    description: >
+      Create a new BankID mobile request to start the identification process. 
+      Returns requestID and a merchant ref.  If the user do not have BankID
+      mobile of have inputed inncorrect values the
+      InvalidMobileNumberOrDateOfBirth will be returned as true.  If there is an
+      error the error code will be returned also.
+    file: scripts/bankidmobile_create.js
+    parameters:
+      MobileNumber:
+        type: string
+        description: Required. Mobile number for the user that is to be identified
+        example: '90405939'
+      DateOfBirth:
+        type: string
+        description: Required. Date of birth for the user that is to be identified
+        example: '190917'
+      GetSocialSecurityNumber:
+        type: boolean
+        description: >
+          Should the socialsecuritynumber be fetched from the identityprovider? 
+          Beware that there is an extra cost of doing this every time and one
+          need permission to do it.
+        example: false
+      ExternalReference:
+        type: string
+        description: >
+          The merchants reference to the identification process, this will also
+          be used to identify an identification in a detailed invoice. 
+
+          It is an advantage if this is unique for each API call.
+        example: 765a7ed2d95c4000b14d7a48eb267546
+      AddonServices:
+        type: object
+        description: >
+          List of addon data that can be orderd. The result will be in MetaData
+          list of the reponse
+        example: |
+          {
+            "no.personal.info": null
+          }
+    response:
+      mimetype: application/json
+      examples:
+        - exit_code: 200
+          description: Success
+          example: |
+            {
+              "Url": "https://idtest.signere.no/NoBankIDMobile/Start?sessionid=3HtyxmFpQ5zXQ5o7aBvTYpbq630jvpNlZe1TNwzSi81v2&providerId=c4ab63ae-81b6-49d2-b75c-a17301071188&iframe=False&webmessaging=False&language=NO&errorUrl=aHR0cHM6Ly9pZHRlc3Quc2lnbmVyZS5uby90ZXN0L2Vycm9yP3N0YXR1cz1bMF0%3D&",
+              "RequestId": "25191832985138881678wuuPNTgWL4Aq7RsIemzU8umZSsYNWcEFH1PbCVkdfHZjb6tfnyeTo4mDcvOoEP0z4zvvpcx0zoriRdYbETGLLwHJPkFXRjlRs0kpgeKvANFKkHA0CJGGFYQpbTfht08riaJcpKoRY4vHRJjANxfITbS7bYlFTFR37PEAqcsArnVrcuNyjnvp"
+            }
+  history-getbyid:
+    description: Gets an historic identification session (older than 14 days)
+    file: scripts/history_getbyid.js
+    parameters:
+      requestId:
+        type: string
+        description: Required. The requestId returned in the creation of the request
+        example: 123ses43rwr3wsrsw3
+    response:
+      mimetype: application/json
+      examples:
+        - exit_code: 200
+          description: Success
+          example: |
+            {
+              "Id": "2519011552909132317BrJ6VqOrcBYfwmgQ2eypM5XP7DEbCm8",
+              "Name": "Bruce Wayne",
+              "Status": "SUCCESS",
+              "ClientIp": "192.168.1.1",
+              "UserAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36",
+              "IdentityProviderType": "NO_BANKID_WEB",
+              "Language": "NO",
+              "Externalid": "gtWEH8euBHeSWPTcjwB0Bg5o1mjsH106wmjTDMxoFnadzvNSsnSSY0zbJTpy",
+              "Timestamp": "2017-08-30T15:32:03.9378198Z",
+              "iFrame": false,
+              "SocialSecurityNumber": false
+            }
+  history-getbyexternalid:
+    description: >
+      Gets an historic identification session (older than 14 days) by the
+      merchants reference (if not unique will get the newest)
+    file: scripts/history_getbyexternalid.js
+    parameters:
+      externalId:
+        type: string
+        description: Required. The merchants reference to the identification process
+        example: asd
+    response:
+      mimetype: application/json
+      examples:
+        - exit_code: 200
+          description: Success
+          example: |
+            {
+              "Id": "2519011552909132317BrJ6VqOrcBYfwmgQ2eypM5XP7DEbCm8",
+              "Name": "Bruce Wayne",
+              "Status": "SUCCESS",
+              "ClientIp": "192.168.1.1",
+              "UserAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36",
+              "IdentityProviderType": "NO_BANKID_WEB",
+              "Language": "NO",
+              "Externalid": "gtWEH8euBHeSWPTcjwB0Bg5o1mjsH106wmjTDMxoFnadzvNSsnSSY0zbJTpy",
+              "Timestamp": "2017-08-30T15:32:03.9378198Z",
+              "iFrame": false,
+              "SocialSecurityNumber": false
+            }
+  history-getbyfilter:
+    description: >
+      Gets an historic identification session (older than 14 days) by the
+      merchants reference (if not unique will get the newest)
+    file: scripts/history_getbyfilter.js
+    parameters:
+      year:
+        type: number
+        description: Required. The year to fetch the sessions from
+        example: 2017
+      month:
+        type: number
+        description: 'Optional: Filter on month'
+        example: 12
+      day:
+        type: number
+        description: 'Optional: Filter on day'
+        example: 23
+      status:
+        type: string
+        description: >
+          Valid values: "UNKOWN" "SUCCESS" "ERROR" "USERABORTED" "INVALIDATED"
+          "TIMEOUT"  Optional: Filter on status
+        example: SUCCESS
+      identityProviderType:
+        type: string
+        description: >
+          Valid values: "UNKNOWN" "NO_BANKID_MOBILE" "NO_BANKID_WEB"
+          "SWE_BANKID" "SWE_BANKID_MOBILE" "NO_BUYPASS" "DA_NEMID" "FI_TUPAS"
+          Optional: Filter on identity provider
+        example: NO_BANKID_WEB
+      name:
+        type: string
+        description: 'Optional: Filter on the name of the user'
+        example: Karl Johan
+      skip:
+        type: number
+        description: Number of pages to skip
+        example: 0
+      pageSize:
+        type: number
+        description: Number of results in each page
+        example: 200
+    response:
+      mimetype: application/json
+      examples:
+        - exit_code: 200
+          description: Success
+          example: |
+            [
+              {
+                "Id": "2519011552909132317BrJ6VqOrcBYfwmgQ2eypM5XP7DEbCm8",
+                "Name": "Bruce Wayne",
+                "Status": "SUCCESS",
+                "ClientIp": "192.168.1.1",
+                "UserAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36",
+                "IdentityProviderType": "NO_BANKID_WEB",
+                "Language": "NO",
+                "Externalid": "gtWEH8euBHeSWPTcjwB0Bg5o1mjsH106wmjTDMxoFnadzvNSsnSSY0zbJTpy",
+                "Timestamp": "2017-08-30T15:32:04.0003196Z",
+                "iFrame": false,
+                "SocialSecurityNumber": false
+              },
+              {
+                "Id": "2519011552909132317BrJ6VqOrcBYfwmgQ2eypM5XP7DEbCm8",
+                "Name": "Joker",
+                "Status": "ERROR",
+                "ClientIp": "192.168.1.1",
+                "UserAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36",
+                "IdentityProviderType": "FI_TUPAS",
+                "Language": "NO",
+                "Externalid": "gtWEH8euBHeSWPTcjwB0Bg5o1mjsH106wmjTDMxoFnadzvNSsnSSY0zbJTpy",
+                "Errorcode": "TIMEOUT",
+                "Timestamp": "2017-08-30T15:32:04.0003196Z",
+                "iFrame": false,
+                "SocialSecurityNumber": false
+              }
+            ]

@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "@idfy/identification": "^0.9.1",
+    "syncano-server": "beta",
+    "syncano-validate": "^0.5.1"
+  }
+}
